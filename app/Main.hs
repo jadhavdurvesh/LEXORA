@@ -7,6 +7,7 @@ import Typecheck
 import Eval
 import IR
 import Codegen
+import Optimize
 
 process :: String -> IO ()
 process source = case lexSource source >>= parseExpr of
@@ -18,10 +19,13 @@ process source = case lexSource source >>= parseExpr of
    case eval [] expr of
     Left err -> putStrLn ("runtime error: " ++ err)
     Right value -> putStrLn ("value: " ++ show value)
+   let optimized = optimize expr
+   putStrLn "optimized expression:"
+   putStrLn (prettyExpr optimized)
    putStrLn "intermediate representation:"
-   putStr (renderIR (compileIR expr))
+   putStr (renderIR (compileIR optimized))
    putStrLn "backend listing (not native LLVM):"
-   putStr (emitLLVM (compileIR expr))
+   putStr (emitLLVM (compileIR optimized))
 
 main :: IO ()
 main = do
