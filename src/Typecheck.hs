@@ -1,76 +1,135 @@
 module Typecheck (infer) where
+
 import Control.Monad.State.Strict
 import qualified Data.Map.Strict as M
 import qualified Data.Set as S
 import Syntax
+
 type Subst = M.Map Int Type
-type Scheme = ([Int],Type)
+type Scheme = ([Int], Type)
 type TypeEnv = M.Map String Scheme
 type Infer a = StateT Int (Either String) a
-apply s t = case t of
- TVar n -> maybe t (apply s) (M.lookup n s)
- TFun a b -> TFun (apply s a) (apply s b)
- _ -> t
-applyScheme s (vs,t) = (vs,apply (foldr M.delete s vs) t)
-free t = case t of
- TVar n -> S.singleton n
- TFun a b -> S.union (free a) (free b)
- _ -> S.empty
+
+apply :: Subst -> Type -> Type
+apply s ty = case ty of
+  TVar n -> maybe ty (apply s) (M.lookup n s)
+  TFun a b -> TFun (apply s a) (apply s b)
+  _ -> ty
+
+applyScheme :: Subst -> Scheme -> Scheme
+applyScheme s (vars, ty) = (vars, apply (foldr M.delete s vars) ty)
+
+applyEnv :: Subst -> TypeEnv -> TypeEnv
+applyEnv s = M.map (applyScheme s)
+
+free :: Type -> S.Set Int
+free ty = case ty of
+  TVar n -> S.singleton n
+  TFun a b -> S.union (free a) (free b)
+  _ -> S.empty
+
+freeEnv :: TypeEnv -> S.Set Int
 freeEnv = S.unions . map (free . snd) . M.elems
-fresh = do n <- get; put (n+1); pure (TVar n)
-unify a b = case (a,b) of
- (TInt,TInt) -> pure M.empty
- (TBool,TBool) -> pure M.empty
- (TVar n,t) -> bind n t
- (t,TVar n) -> bind n t
- (TFun a1 a2,TFun b1 b2) -> do
-  s1 <- unify a1 b1
-  s2 <- unify (apply s1 a2) (apply s1 b2)
-  pure (M.union s2 s1)
- _ -> lift (Left ("type mismatch: " ++ show a ++ " versus " ++ show b))
- where
- bind n t | t == TVar n = pure M.empty
-          | S.member n (free t) = lift (Left ("infinite type: t" ++ show n ++ " occurs in " ++ show t))
-          | otherwise = pure (M.singleton n t)
-generalize env t = (S.toList (S.difference (free t) (freeEnv env)),t)
-instantiate (vs,t) = do
- freshTypes <- mapM (const fresh) vs
- pure (apply (M.fromList (zip vs freshTypes)) t)
-infer e = evalStateT (go M.empty e) 0
-go env e = case e of
- EInt _ _ -> pure TInt
- EBool _ _ -> pure TBool
- EVar n s -> maybe (lift (Left (show (spanLine s) ++ ":" ++ show (spanColumn s) ++ ": unbound variable " ++ n))) instantiate (M.lookup n env)
- EBin op a b _ -> do
-  ta <- go env a
-  tb <- go env b
-  case op of
-   Add -> numeric ta tb
-   Sub -> numeric ta tb
-   Mul -> numeric ta tb
-   Div -> numeric ta tb
-   Equal -> unify ta tb >> pure TBool
-   Less -> numeric ta tb >> pure TBool
-   Greater -> numeric ta tb >> pure TBool
- EIf c a b _ -> do
-  tc <- go env c
-  _ <- unify tc TBool
-  ta <- go env a
-  tb <- go env b
-  _ <- unify ta tb
-  pure ta
- ELet n v body _ -> do
-  tv <- go env v
-  go (M.insert n (generalize env tv) env) body
- ELam n body _ -> do
-  arg <- fresh
-  result <- go (M.insert n ([],arg) env) body
-  pure (TFun arg result)
- EApp f x _ -> do
-  tf <- go env f
-  tx <- go env x
-  result <- fresh
-  _ <- unify tf (TFun tx result)
-  pure result
- where
- numeric a b = unify a TInt >> unify b TInt >> pure TInt
+
+fresh :: Infer Type
+fresh = do
+  n <- get
+  put (n + 1)
+  pure (TVar n)
+
+compose :: Subst -> Subst -> Subst
+compose newer older = M.union (M.map (apply newer) older) newer
+
+unify :: Type -> Type -> Infer Subst
+unify left right = case (left, right) of
+  (TInt, TInt) -> pure M.empty
+  (TBool, TBool) -> pure M.empty
+  (TVar n, ty) -> bind n ty
+  (ty, TVar n) -> bind n ty
+  (TFun a1 a2, TFun b1 b2) -> do
+    s1 <- unify a1 b1
+    s2 <- unify (apply s1 a2) (apply s1 b2)
+    pure (compose s2 s1)
+  _ -> lift (Left ("type mismatch: " ++ show left ++ " versus " ++ show right))
+  where
+    bind n ty
+      | ty == TVar n = pure M.empty
+      | S.member n (free ty) = lift (Left ("infinite type: t" ++ show n ++ " occurs in " ++ show ty))
+      | otherwise = pure (M.singleton n ty)
+
+generalize :: TypeEnv -> Type -> Scheme
+generalize env ty = (S.toList (S.difference (free ty) (freeEnv env)), ty)
+
+instantiate :: Scheme -> Infer Type
+instantiate (vars, ty) = do
+  replacements <- mapM (const fresh) vars
+  pure (apply (M.fromList (zip vars replacements)) ty)
+
+infer :: Expr -> Either String Type
+infer expression = evalStateT action 0
+  where
+    action = do
+      (sub, ty) <- inferExpr M.empty expression
+      pure (apply sub ty)
+
+inferExpr :: TypeEnv -> Expr -> Infer (Subst, Type)
+inferExpr env expression = case expression of
+  EInt _ _ -> pure (M.empty, TInt)
+  EBool _ _ -> pure (M.empty, TBool)
+  EVar name span' -> case M.lookup name env of
+    Nothing -> lift (Left (show (spanLine span') ++ ":" ++ show (spanColumn span') ++ ": unbound variable " ++ name))
+    Just scheme -> do
+      ty <- instantiate scheme
+      pure (M.empty, ty)
+  EBin op left right _ -> do
+    (s1, leftTy) <- inferExpr env left
+    (s2, rightTy) <- inferExpr (applyEnv s1 env) right
+    let current = compose s2 s1
+    case op of
+      Add -> numeric current leftTy rightTy
+      Sub -> numeric current leftTy rightTy
+      Mul -> numeric current leftTy rightTy
+      Div -> numeric current leftTy rightTy
+      Less -> do
+        sn <- numeric current leftTy rightTy
+        pure (sn, TBool)
+      Greater -> do
+        sn <- numeric current leftTy rightTy
+        pure (sn, TBool)
+      Equal -> do
+        se <- unify (apply current leftTy) (apply current rightTy)
+        pure (compose se current, TBool)
+  EIf condition yes no _ -> do
+    (s1, conditionTy) <- inferExpr env condition
+    sc <- unify conditionTy TBool
+    let s2 = compose sc s1
+    (s3, yesTy) <- inferExpr (applyEnv s2 env) yes
+    let s4 = compose s3 s2
+    (s5, noTy) <- inferExpr (applyEnv s4 env) no
+    sb <- unify (apply s5 yesTy) (apply s5 noTy)
+    let resultSub = compose sb (compose s5 s4)
+    pure (resultSub, apply resultSub yesTy)
+  ELet name value body _ -> do
+    (s1, valueTy) <- inferExpr env value
+    let env1 = applyEnv s1 env
+        scheme = generalize env1 (apply s1 valueTy)
+    (s2, bodyTy) <- inferExpr (M.insert name scheme env1) body
+    pure (compose s2 s1, apply s2 bodyTy)
+  ELam name body _ -> do
+    argumentTy <- fresh
+    let env1 = M.insert name ([], argumentTy) env
+    (s1, bodyTy) <- inferExpr env1 body
+    pure (s1, TFun (apply s1 argumentTy) (apply s1 bodyTy))
+  EApp fn arg _ -> do
+    (s1, fnTy) <- inferExpr env fn
+    (s2, argTy) <- inferExpr (applyEnv s1 env) arg
+    resultTy <- fresh
+    s3 <- unify (apply s2 fnTy) (TFun (apply s2 argTy) resultTy)
+    let finalSub = compose s3 (compose s2 s1)
+    pure (finalSub, apply s3 resultTy)
+  where
+    numeric current a b = do
+      s1 <- unify (apply current a) TInt
+      let next = compose s1 current
+      s2 <- unify (apply next b) TInt
+      pure (compose s2 next, TInt)
