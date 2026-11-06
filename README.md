@@ -23,6 +23,7 @@ LEXORA includes a lexer, recursive-descent expression parser, Hindley–Milner-s
 - Lexical closures in the evaluator
 - Type inference for integers, booleans, and function types
 - Occurs-check to reject infinite types
+- AST constant-folding optimization
 - Stack-oriented IR generation
 - Inspectable backend listing
 - File execution and REPL
