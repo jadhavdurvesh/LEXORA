@@ -11,3 +11,12 @@ executable lexora
   build-depends: base >=4.14 && <5, containers, mtl
   default-language: Haskell2010
   ghc-options: -Wall -Wcompat -O2
+
+test-suite lexora-tests
+  type: exitcode-stdio-1.0
+  main-is: Spec.hs
+  hs-source-dirs: test, src
+  other-modules: Syntax, Lexer, Parser, Typecheck, Eval
+  build-depends: base >=4.14 && <5, containers, mtl
+  default-language: Haskell2010
+  ghc-options: -Wall
