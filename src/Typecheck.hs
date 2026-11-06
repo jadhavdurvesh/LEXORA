@@ -124,7 +124,7 @@ inferExpr env expression = case expression of
     (s1, fnTy) <- inferExpr env fn
     (s2, argTy) <- inferExpr (applyEnv s1 env) arg
     resultTy <- fresh
-    s3 <- unify (apply s2 fnTy) (TFun (apply s2 argTy) resultTy)
+    s3 <- unify (apply (compose s2 s1) fnTy) (TFun (apply s2 argTy) resultTy)
     let finalSub = compose s3 (compose s2 s1)
     pure (finalSub, apply s3 resultTy)
   where
