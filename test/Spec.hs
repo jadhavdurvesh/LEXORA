@@ -5,6 +5,7 @@ import Parser
 import Typecheck
 import Eval
 import Syntax
+import Optimize
 
 parse source = lexSource source >>= parseExpr
 assert label condition = unless condition (error ("FAILED: " ++ label))
@@ -40,5 +41,13 @@ main = do
  case run "1 / 0" of
   Left err -> assert "division by zero is a runtime error" (err == "division by zero")
   Right _ -> error "division by zero unexpectedly succeeded"
+
+ case parse "if true then 2 + 3 * 4 else 99" of
+  Right expr -> assert "constant folding and branch elimination" (prettyExpr (optimize expr) == "14")
+  Left err -> error err
+
+ case parse "1 / 0" of
+  Right expr -> assert "optimizer preserves division by zero" (case optimize expr of EBin Div _ _ _ -> True; _ -> False)
+  Left err -> error err
 
  putStrLn "LEXORA tests passed"
