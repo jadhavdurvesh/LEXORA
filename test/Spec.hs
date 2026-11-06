@@ -8,20 +8,37 @@ import Syntax
 
 parse source = lexSource source >>= parseExpr
 assert label condition = unless condition (error ("FAILED: " ++ label))
+run source = case parse source of
+ Left err -> Left err
+ Right expr -> case infer expr of
+  Left err -> Left err
+  Right _ -> eval [] expr
+
 main :: IO ()
 main = do
- let good = ["1 + 2 * 3","let id = fn x => x in id 42","if true then 7 else 9","(fn x => x + 1) 4"]
- mapM_ (\source -> case parse source of
+ let good = ["1 + 2 * 3","let id = fn x => x in id 42","if true then 7 else 9","(fn x => x + 1) 4","let id = fn x => x in if id true then id 1 else id 2"]
+ mapM_ (\source -> case run source of
+  Left err -> error (source ++ ": " ++ err)
+  Right _ -> pure ()) good
+
+ case parse "fn x => x + 1" of
+  Right expr -> assert "lambda parameter is inferred as Int" (infer expr == Right (TFun TInt TInt))
   Left err -> error err
-  Right expr -> case infer expr of
-   Left err -> error err
-   Right _ -> case eval [] expr of
-    Left err -> error err
-    Right _ -> pure ()) good
+
+ case parse "let id = fn x => x in if id true then id 1 else id 2" of
+  Right expr -> assert "let polymorphism supports Bool and Int" (infer expr == Right TInt)
+  Left err -> error err
+
  case parse "if 1 then true else false" of
   Right expr -> assert "reject non-boolean condition" (case infer expr of Left _ -> True; _ -> False)
   Left err -> error err
- case parse "1 / 0" of
-  Right expr -> assert "division by zero is a runtime error" (case eval [] expr of Left _ -> True; _ -> False)
+
+ case parse "fn x => x x" of
+  Right expr -> assert "occurs check rejects infinite types" (case infer expr of Left _ -> True; _ -> False)
   Left err -> error err
+
+ case run "1 / 0" of
+  Left err -> assert "division by zero is a runtime error" (err == "division by zero")
+  Right _ -> error "division by zero unexpectedly succeeded"
+
  putStrLn "LEXORA tests passed"
