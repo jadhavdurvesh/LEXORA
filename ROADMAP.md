@@ -21,6 +21,7 @@
 - [x] Stack-oriented intermediate representation
 - [x] Branch labels for conditionals
 - [x] Inspectable backend listing
+- [x] Safe constant folding and boolean branch elimination
 - [ ] Correct substitution propagation across all inference branches
 - [ ] Recursive bindings and polymorphic regression suite
 - [ ] IR verifier and stack-effect analysis
