@@ -40,3 +40,6 @@
 - [ ] LLVM verifier integration
 - [ ] Native object and executable emission
 - [ ] Optimization passes and benchmarks
+
+- [x] Apply condition-expression substitutions before boolean unification
+- [x] Regression coverage for substituted conditional types and higher-order application
