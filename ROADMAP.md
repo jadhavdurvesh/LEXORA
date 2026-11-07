@@ -43,3 +43,5 @@
 
 - [x] Apply condition-expression substitutions before boolean unification
 - [x] Regression coverage for substituted conditional types and higher-order application
+
+- [x] Initial IR control-flow verifier for duplicate labels and undefined branch targets
