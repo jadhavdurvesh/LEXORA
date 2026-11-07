@@ -72,5 +72,10 @@ main = do
  case parse "if true then 1 else 2" of
   Right expr -> assert "compiled conditional IR has valid labels" (verifyLabels (compileIR expr) == Right ())
   Left err -> error err
+ case parse "if true then 1 else 2" of
+  Right expr -> assert "compiled conditional IR has consistent stack heights" (verifyStack (compileIR expr) == Right ())
+  Left err -> error err
+ assert "IR verifier rejects stack underflow" (case verifyStack [AddI] of Left _ -> True; _ -> False)
+ assert "IR verifier rejects inconsistent branch merge" (case verifyStack [PushBool True, JumpIfFalse "else", PushInt 1, Jump "end", Label "else", PushInt 2, PushInt 3, Label "end"] of Left _ -> True; _ -> False)
 
  putStrLn "LEXORA tests passed"
