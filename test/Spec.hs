@@ -34,6 +34,14 @@ main = do
   Right expr -> assert "reject non-boolean condition" (case infer expr of Left _ -> True; _ -> False)
   Left err -> error err
 
+ case parse "if ((fn x => x) true) then 11 else 22" of
+  Right expr -> assert "condition inference propagates substitutions" (infer expr == Right TInt)
+  Left err -> error err
+
+ case parse "let apply = fn f => fn x => f x in apply (fn n => n + 1) 41" of
+  Right expr -> assert "nested higher-order application infers" (infer expr == Right TInt)
+  Left err -> error err
+
  case parse "fn x => x x" of
   Right expr -> assert "occurs check rejects infinite types" (case infer expr of Left _ -> True; _ -> False)
   Left err -> error err
