@@ -8,6 +8,7 @@ import Syntax
 import Optimize
 import IR
 import IRVerify
+import VM
 
 parse source = lexSource source >>= parseExpr
 assert label condition = unless condition (error ("FAILED: " ++ label))
@@ -77,5 +78,13 @@ main = do
   Left err -> error err
  assert "IR verifier rejects stack underflow" (case verifyStack [AddI] of Left _ -> True; _ -> False)
  assert "IR verifier rejects inconsistent branch merge" (case verifyStack [PushBool True, JumpIfFalse "else", PushInt 1, Jump "end", Label "else", PushInt 2, PushInt 3, Label "end"] of Left _ -> True; _ -> False)
+
+
+ assert "VM executes integer arithmetic" (runProgram [PushInt 6, PushInt 7, MulI] == Right (RInt 42))
+ assert "VM executes conditional branch" (runProgram [PushBool False, JumpIfFalse "else", PushInt 1, Jump "end", Label "else", PushInt 2, Label "end"] == Right (RInt 2))
+ assert "VM executes variable store and load" (runProgram [PushInt 9, Store "answer", Load "answer"] == Right (RInt 9))
+ assert "VM detects division by zero" (runProgram [PushInt 10, PushInt 0, DivI] == Left DivisionByZero)
+ assert "VM enforces execution fuel" (runProgramWithFuel 8 [Label "loop", Jump "loop"] == Left FuelExhausted)
+ assert "VM rejects undefined labels" (runProgram [Jump "missing"] == Left (MissingLabel "missing"))
 
  putStrLn "LEXORA tests passed"
