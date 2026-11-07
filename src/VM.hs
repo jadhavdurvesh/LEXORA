@@ -30,7 +30,7 @@ runProgramWithFuel fuel code
     execute remaining pc stack env labelMap
       | remaining <= 0 = Left FuelExhausted
       | pc < 0 || pc >= length code = case stack of
-          value:_ -> Right value
+          value : _ -> Right value
           [] -> Left FellOffProgram
       | otherwise =
           let next = execute (remaining - 1) (pc + 1)
@@ -41,14 +41,14 @@ runProgramWithFuel fuel code
               Nothing -> Left (MissingVariable name)
               Just value -> next (value : stack) env labelMap
             Store name -> case stack of
-              value:rest -> next rest (M.insert name value env) labelMap
+              value : rest -> next rest (M.insert name value env) labelMap
               [] -> Left StackUnderflow
             AddI -> integerBinary (+) stack next env labelMap
             SubI -> integerBinary (-) stack next env labelMap
             MulI -> integerBinary (*) stack next env labelMap
             DivI -> case stack of
-              RInt 0:RInt _: _ -> Left DivisionByZero
-              RInt b:RInt a:rest -> next (RInt (a `div` b):rest) env labelMap
+              RInt 0 : RInt _ : _ -> Left DivisionByZero
+              RInt b : RInt a : rest -> next (RInt (a `div` b):rest) env labelMap
               _:_:_ -> Left (TypeMismatch "DIV expects two integers")
               _ -> Left StackUnderflow
             EqI -> compareValues (==) stack next env labelMap
@@ -56,8 +56,8 @@ runProgramWithFuel fuel code
             GtI -> integerCompare (>) stack next env labelMap
             Jump name -> jumpTo name remaining stack env labelMap
             JumpIfFalse name -> case stack of
-              RBool False:rest -> jumpTo name remaining rest env labelMap
-              RBool True:rest -> execute (remaining - 1) (pc + 1) rest env labelMap
+              RBool False : rest -> jumpTo name remaining rest env labelMap
+              RBool True : rest -> execute (remaining - 1) (pc + 1) rest env labelMap
               _: _ -> Left (TypeMismatch "conditional jump expects Bool")
               [] -> Left StackUnderflow
             Label _ -> next stack env labelMap
@@ -86,5 +86,5 @@ runProgramWithFuel fuel code
 
     compareValues operation stack next env labelMap =
       case stack of
-        b:a:rest -> next (RBool (operation a b):rest) env labelMap
+        b : a : rest -> next (RBool (operation a b):rest) env labelMap
         _ -> Left StackUnderflow
