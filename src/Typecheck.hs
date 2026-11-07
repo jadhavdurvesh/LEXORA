@@ -91,10 +91,10 @@ inferExpr env expression = case expression of
       Mul -> numeric current leftTy rightTy
       Div -> numeric current leftTy rightTy
       Less -> do
-        sn <- numeric current leftTy rightTy
+        (sn, _) <- numeric current leftTy rightTy
         pure (sn, TBool)
       Greater -> do
-        sn <- numeric current leftTy rightTy
+        (sn, _) <- numeric current leftTy rightTy
         pure (sn, TBool)
       Equal -> do
         se <- unify (apply current leftTy) (apply current rightTy)
