@@ -76,3 +76,5 @@ See ROADMAP.md and docs/language.md.
 ## License
 
 MIT.
+
+The compiler pipeline includes an initial IR label verifier that rejects duplicate labels and branches to undefined targets before backend processing. Stack-effect and closure-region verification remain future work.
