@@ -80,3 +80,5 @@ MIT.
 The compiler pipeline includes an initial IR label verifier that rejects duplicate labels and branches to undefined targets before backend processing. Stack-effect and closure-region verification remain future work.
 
 The IR validation pass checks unique labels, defined branch destinations, stack underflow, and consistent stack heights at control-flow merge points. This is static IR validation, not a bytecode runtime or proof of source-language semantics.
+
+LEXORA now includes an initial fuel-bounded stack bytecode VM for integer/boolean constants, local variables, arithmetic, comparisons, conditional branches and jumps. The CLI verifies stack/control-flow consistency before executing supported optimized IR and prints the VM result. Closure creation and function calls are explicitly unsupported in this first VM milestone; this is not yet a complete implementation of the source language.
