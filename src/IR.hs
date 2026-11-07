@@ -1,6 +1,7 @@
 module IR (Instr(..),compileIR,renderIR) where
 import Syntax
 data Instr = PushInt Integer | PushBool Bool | Load String | Store String | AddI | SubI | MulI | DivI | EqI | LtI | GtI | JumpIfFalse String | Jump String | Label String | MakeClosure String | Call | Return deriving (Eq,Show)
+compileIR :: Expr -> [Instr]
 compileIR expr = fst (go 0 expr)
  where
  go n e = case e of
@@ -22,4 +23,5 @@ compileIR expr = fst (go 0 expr)
  opInstr Equal=EqI
  opInstr Less=LtI
  opInstr Greater=GtI
+renderIR :: [Instr] -> String
 renderIR = unlines . map show
