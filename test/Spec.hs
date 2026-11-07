@@ -6,6 +6,8 @@ import Typecheck
 import Eval
 import Syntax
 import Optimize
+import IR
+import IRVerify
 
 parse source = lexSource source >>= parseExpr
 assert label condition = unless condition (error ("FAILED: " ++ label))
@@ -56,6 +58,19 @@ main = do
 
  case parse "1 / 0" of
   Right expr -> assert "optimizer preserves division by zero" (case optimize expr of EBin Div _ _ _ -> True; _ -> False)
+  Left err -> error err
+
+ case verifyLabels [Label "entry", JumpIfFalse "else", Jump "end", Label "else", Label "end"] of
+  Right () -> pure ()
+  Left err -> error ("valid IR labels rejected: " ++ err)
+ case verifyLabels [Jump "missing"] of
+  Left _ -> pure ()
+  Right () -> error "undefined IR branch target unexpectedly accepted"
+ case verifyLabels [Label "dup", Label "dup"] of
+  Left _ -> pure ()
+  Right () -> error "duplicate IR label unexpectedly accepted"
+ case parse "if true then 1 else 2" of
+  Right expr -> assert "compiled conditional IR has valid labels" (verifyLabels (compileIR expr) == Right ())
   Left err -> error err
 
  putStrLn "LEXORA tests passed"
