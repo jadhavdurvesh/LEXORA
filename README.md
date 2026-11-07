@@ -78,3 +78,5 @@ See ROADMAP.md and docs/language.md.
 MIT.
 
 The compiler pipeline includes an initial IR label verifier that rejects duplicate labels and branches to undefined targets before backend processing. Stack-effect and closure-region verification remain future work.
+
+The IR validation pass checks unique labels, defined branch destinations, stack underflow, and consistent stack heights at control-flow merge points. This is static IR validation, not a bytecode runtime or proof of source-language semantics.
