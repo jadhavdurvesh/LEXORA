@@ -51,7 +51,7 @@ verifyStack instructions = do
                 let after = before + delta
                     successors = case instruction of
                       Jump name -> maybe [] (:[]) (M.lookup name labels)
-                      JumpIfFalse name -> maybe [pc+1] (\\target -> [target, pc+1]) (M.lookup name labels)
+                      JumpIfFalse name -> maybe [pc+1] (\target -> [target, pc+1]) (M.lookup name labels)
                       Return -> []
                       _ -> [pc+1]
                 (depths', added) <- foldl (insertDepth after) (Right (depths, [])) successors
