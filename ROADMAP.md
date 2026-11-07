@@ -50,3 +50,5 @@
 
 - [x] Initial control-flow-aware IR verifier: label validity, stack underflow, and stack-height merge checks
 
+
+- [x] Correct substitution propagation in conditional and comparison inference paths
