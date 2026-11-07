@@ -8,6 +8,8 @@ import Eval
 import IR
 import Codegen
 import Optimize
+import IRVerify
+import VM
 
 process :: String -> IO ()
 process source = case lexSource source >>= parseExpr of
@@ -24,8 +26,14 @@ process source = case lexSource source >>= parseExpr of
    putStrLn (prettyExpr optimized)
    putStrLn "intermediate representation:"
    putStr (renderIR (compileIR optimized))
+   let bytecode = compileIR optimized
    putStrLn "backend listing (not native LLVM):"
-   putStr (emitLLVM (compileIR optimized))
+   putStr (emitLLVM bytecode)
+   case verifyStack bytecode of
+    Left err -> putStrLn ("IR verification error: " ++ err)
+    Right () -> case runProgram bytecode of
+     Left err -> putStrLn ("VM runtime error: " ++ show err)
+     Right value -> putStrLn ("VM result: " ++ show value)
 
 main :: IO ()
 main = do
