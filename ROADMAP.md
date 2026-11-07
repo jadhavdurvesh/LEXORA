@@ -47,3 +47,6 @@
 - [x] Initial IR control-flow verifier for duplicate labels and undefined branch targets
 
 - [x] Control-flow-aware IR stack-height analysis with underflow and merge validation
+
+- [x] Initial control-flow-aware IR verifier: label validity, stack underflow, and stack-height merge checks
+
