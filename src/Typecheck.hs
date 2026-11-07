@@ -101,7 +101,7 @@ inferExpr env expression = case expression of
         pure (compose se current, TBool)
   EIf condition yes no _ -> do
     (s1, conditionTy) <- inferExpr env condition
-    sc <- unify conditionTy TBool
+    sc <- unify (apply s1 conditionTy) TBool
     let s2 = compose sc s1
     (s3, yesTy) <- inferExpr (applyEnv s2 env) yes
     let s4 = compose s3 s2
