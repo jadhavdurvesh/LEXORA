@@ -27,3 +27,28 @@ instance Show Value where
  show (VInt n) = show n
  show (VBool b) = if b then "true" else "false"
  show (VClosure n _ _) = "<function " ++ n ++ ">"
+
+
+prettyExpr :: Expr -> String
+prettyExpr expression = case expression of
+ EInt n _ -> show n
+ EBool True _ -> "true"
+ EBool False _ -> "false"
+ EVar name _ -> name
+ EBin op left right _ ->
+  "(" ++ prettyExpr left ++ " " ++ operator op ++ " " ++ prettyExpr right ++ ")"
+ EIf condition yes no _ ->
+  "if " ++ prettyExpr condition ++ " then " ++ prettyExpr yes ++ " else " ++ prettyExpr no
+ ELet name value body _ ->
+  "let " ++ name ++ " = " ++ prettyExpr value ++ " in " ++ prettyExpr body
+ ELam name body _ -> "fn " ++ name ++ " => " ++ prettyExpr body
+ EApp function argument _ ->
+  "(" ++ prettyExpr function ++ " " ++ prettyExpr argument ++ ")"
+ where
+  operator Add = "+"
+  operator Sub = "-"
+  operator Mul = "*"
+  operator Div = "/"
+  operator Equal = "=="
+  operator Less = "<"
+  operator Greater = ">"
