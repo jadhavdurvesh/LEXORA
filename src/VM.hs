@@ -14,9 +14,6 @@ data VMError
   | FellOffProgram
   deriving (Eq, Show)
 
-type Stack = [RuntimeValue]
-type Environment = M.Map String RuntimeValue
-
 runProgram :: [Instr] -> Either VMError RuntimeValue
 runProgram code = runProgramWithFuel 1000000 code
 
