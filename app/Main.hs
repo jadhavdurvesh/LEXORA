@@ -1,6 +1,7 @@
 module Main where
 import System.Environment (getArgs)
 import System.IO (hFlush, isEOF, stdout)
+import Syntax (prettyExpr)
 import Lexer
 import Parser
 import Typecheck
