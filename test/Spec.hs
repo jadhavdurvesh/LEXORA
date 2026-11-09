@@ -87,4 +87,17 @@ main = do
  assert "VM enforces execution fuel" (runProgramWithFuel 8 [Label "loop", Jump "loop"] == Left FuelExhausted)
  assert "VM rejects undefined labels" (runProgram [Jump "missing"] == Left (MissingLabel "missing"))
 
+
+ case parse "6 * 7" of
+  Right expr -> assert "source-to-IR-to-VM arithmetic pipeline" (runProgram (compileIR (optimize expr)) == Right (RInt 42))
+  Left err -> error err
+
+ case parse "if false then 1 else 42" of
+  Right expr -> assert "source-to-IR-to-VM conditional pipeline" (runProgram (compileIR (optimize expr)) == Right (RInt 42))
+  Left err -> error err
+
+ case parse "let answer = 40 + 2 in answer" of
+  Right expr -> assert "source-to-IR-to-VM local binding pipeline" (runProgram (compileIR (optimize expr)) == Right (RInt 42))
+  Left err -> error err
+
  putStrLn "LEXORA tests passed"
